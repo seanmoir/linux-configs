@@ -1,0 +1,128 @@
+services:
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    hostname: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Pacific/Auckland
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - jellyfin-config:/config
+      - /tank/big-cheese/video/tvshows:/data/tvshows
+      - /tank/big-cheese/video/movies:/data/movies
+    ports:
+      - 8096:8096
+#     - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+           - driver: nvidia
+             count: 1
+             capabilities: ["gpu"]
+  
+  
+  nextcloud:
+    image: nextcloud 
+    container_name: nextcloud
+    hostname: nextcloud
+    user: 0:987
+    environment:
+      - TZ=Pacific/Auckland
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=
+      - POSTGRES_HOST=nextcloud-db
+    volumes:
+      - nextcloud:/var/www/html
+      - /tank/big-cheese/cloud:/var/www/html/data
+    ports:
+      - 80:80
+    restart: unless-stopped
+    depends_on:
+      - nextcloud-db
+
+  nextcloud-db:
+    image: postgres:latest
+    container_name: nextcloud-db
+    hostname: nextcloud-db
+    restart: always
+    volumes:
+      - nextcloud-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: 
+      POSTGRES_USER: nextcloud
+      POSTGRES_DB: nextcloud
+  
+  
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    hostname: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Pacific/Auckland
+    volumes:
+      - sonarr:/config
+      - /tank/big-cheese/video/tvshows:/tv 
+      - /tank/big-cheese/torrents/watch:/downloads 
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    hostname: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Pacific/Auckland
+    volumes:
+      - radarr:/config
+      - /tank/big-cheese/video/movies:/movies 
+      - /tank/big-cheese/torrents/watch:/downloads 
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    hostname: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Pacific/Auckland
+#     - TRANSMISSION_WEB_HOME= #optional
+      - USER=sean 
+#     - PASS= 
+#     - WHITELIST= #optional
+#     - PEERPORT= #optional
+#     - HOST_WHITELIST= #optional
+    volumes:
+      - transmission:/config
+      - /tank/big-cheese/torrents/downloads:/downloads
+      - /tank/big-cheese/torrents/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+
+
+volumes:
+  jellyfin-config:
+  nextcloud:
+  nextcloud-db:
+  sonarr:
+  radarr:
+  transmission:
